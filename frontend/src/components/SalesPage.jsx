@@ -1,8 +1,25 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { fetchSales } from '../services/salesApi.js';
 import '../styles/sales-page.css';
 
 const PAGE_SIZE = 10;
+
+// Debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export function SalesPage() {
   const [query, setQuery] = useState('');
@@ -18,6 +35,10 @@ export function SalesPage() {
     startDate: '',
     endDate: ''
   });
+
+  // Separate state for slider dragging (local only, not triggering API)
+  const [localAgeRange, setLocalAgeRange] = useState({ minAge: 18, maxAge: 100 });
+
   const [sortBy, setSortBy] = useState('date');
   const [direction, setDirection] = useState('desc');
   const [page, setPage] = useState(0);
@@ -25,6 +46,10 @@ export function SalesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null);
+
+  // Debounce query and filters
+  const debouncedQuery = useDebounce(query, 500);
+  const debouncedFilters = useDebounce(filters, 300);
 
   // derived totals for current page
   const { totalUnits, totalAmount, totalDiscount } = useMemo(() => {
@@ -39,7 +64,7 @@ export function SalesPage() {
 
   useEffect(() => {
     loadData();
-  }, [query, filters, sortBy, direction, page]);
+  }, [debouncedQuery, debouncedFilters, sortBy, direction, page]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -57,8 +82,8 @@ export function SalesPage() {
     setError('');
     try {
       const response = await fetchSales({
-        q: query,
-        ...filters,
+        q: debouncedQuery,
+        ...debouncedFilters,
         sortBy,
         direction,
         page,
@@ -297,18 +322,38 @@ export function SalesPage() {
                       <div
                         className="age-slider-range"
                         style={{
-                          left: `${((filters.minAge - 18) / 82) * 100}%`,
-                          width: `${((filters.maxAge - filters.minAge) / 82) * 100}%`
+                          left: `${((localAgeRange.minAge - 18) / 82) * 100}%`,
+                          width: `${((localAgeRange.maxAge - localAgeRange.minAge) / 82) * 100}%`
                         }}
                       ></div>
                       <input
                         type="range"
                         min="18"
                         max="100"
-                        value={filters.minAge}
-                        onChange={(e) => handleAgeChange('min', e.target.value)}
+                        value={localAgeRange.minAge}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          setLocalAgeRange(prev => ({
+                            ...prev,
+                            minAge: Math.min(value, prev.maxAge)
+                          }));
+                        }}
                         onMouseUp={(e) => {
-                          const snapped = snapToAgeGroup(parseInt(e.target.value), 'min');
+                          const value = parseInt(e.target.value);
+                          const snapped = snapToAgeGroup(value, 'min');
+                          setLocalAgeRange(prev => ({
+                            ...prev,
+                            minAge: snapped
+                          }));
+                          handleAgeChange('min', snapped);
+                        }}
+                        onTouchEnd={(e) => {
+                          const value = parseInt(e.target.value);
+                          const snapped = snapToAgeGroup(value, 'min');
+                          setLocalAgeRange(prev => ({
+                            ...prev,
+                            minAge: snapped
+                          }));
                           handleAgeChange('min', snapped);
                         }}
                         className="age-slider age-slider-min"
@@ -317,10 +362,30 @@ export function SalesPage() {
                         type="range"
                         min="18"
                         max="100"
-                        value={filters.maxAge}
-                        onChange={(e) => handleAgeChange('max', e.target.value)}
+                        value={localAgeRange.maxAge}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          setLocalAgeRange(prev => ({
+                            ...prev,
+                            maxAge: Math.max(value, prev.minAge)
+                          }));
+                        }}
                         onMouseUp={(e) => {
-                          const snapped = snapToAgeGroup(parseInt(e.target.value), 'max');
+                          const value = parseInt(e.target.value);
+                          const snapped = snapToAgeGroup(value, 'max');
+                          setLocalAgeRange(prev => ({
+                            ...prev,
+                            maxAge: snapped
+                          }));
+                          handleAgeChange('max', snapped);
+                        }}
+                        onTouchEnd={(e) => {
+                          const value = parseInt(e.target.value);
+                          const snapped = snapToAgeGroup(value, 'max');
+                          setLocalAgeRange(prev => ({
+                            ...prev,
+                            maxAge: snapped
+                          }));
                           handleAgeChange('max', snapped);
                         }}
                         className="age-slider age-slider-max"
