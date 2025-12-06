@@ -232,3 +232,141 @@
 .error {
   color: #b00020;
 }
+
+/* Age Range Dropdown Styles */
+.age-range-dropdown {
+  min-width: 250px;
+  padding: 12px;
+}
+
+/* Date Picker Dropdown Styles */
+.date-picker-dropdown {
+  padding: 8px;
+}
+
+.date-picker-dropdown input[type="date"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.age-range-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.age-inputs {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.age-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.age-input-group label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.age-input-group input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.age-slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.age-slider-track {
+  position: relative;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  margin: 12px 0;
+}
+
+.age-slider-range {
+  position: absolute;
+  height: 6px;
+  background: #4CAF50;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.age-slider {
+  position: absolute;
+  width: 100%;
+  height: 6px;
+  top: -12px;
+  background: transparent;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.age-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #4CAF50;
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.age-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #4CAF50;
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.age-slider::-webkit-slider-thumb:hover {
+  background: #f0f0f0;
+}
+
+.age-slider::-moz-range-thumb:hover {
+  background: #f0f0f0;
+}
+
+.age-slider-max {
+  pointer-events: none;
+}
+
+.age-slider-max::-webkit-slider-thumb {
+  pointer-events: all;
+}
+
+.age-slider-max::-moz-range-thumb {
+  pointer-events: all;
+}
+
+.age-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #666;
+  padding: 0 2px;
+}

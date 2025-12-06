@@ -9,8 +9,8 @@ export function SalesPage() {
   const [filters, setFilters] = useState({
     customerRegion: [],
     gender: [],
-    minAge: '',
-    maxAge: '',
+    minAge: 18,
+    maxAge: 100,
     productCategory: [],
     tags: [],
     paymentMethod: [],
@@ -111,6 +111,41 @@ export function SalesPage() {
     handleMultiSelectChange(filterName, newValues);
   }
 
+  function handleAgeChange(type, value) {
+    setPage(0);
+    const numValue = parseInt(value) || (type === 'min' ? 18 : 100);
+
+    if (type === 'min') {
+      setFilters(prev => ({
+        ...prev,
+        minAge: Math.min(numValue, prev.maxAge)
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        maxAge: Math.max(numValue, prev.minAge)
+      }));
+    }
+  }
+
+  function snapToAgeGroup(value, type) {
+    const ageGroups = [18, 24, 25, 34, 35, 44, 45, 54, 55, 64, 65, 100];
+
+    if (type === 'min') {
+      // Find closest lower snap point
+      for (let i = ageGroups.length - 1; i >= 0; i--) {
+        if (value >= ageGroups[i]) return ageGroups[i];
+      }
+      return 18;
+    } else {
+      // Find closest upper snap point
+      for (let i = 0; i < ageGroups.length; i++) {
+        if (value <= ageGroups[i]) return ageGroups[i];
+      }
+      return 100;
+    }
+  }
+
   return (
     <div className="sales-page">
       <header className="sales-header">
@@ -140,8 +175,8 @@ export function SalesPage() {
             setFilters({
               customerRegion: [],
               gender: [],
-              minAge: '',
-              maxAge: '',
+              minAge: 18,
+              maxAge: 100,
               productCategory: [],
               tags: [],
               paymentMethod: [],
@@ -215,21 +250,91 @@ export function SalesPage() {
 
         {/* Age Range */}
         <div className="filter-group">
-          <input
-            type="text"
-            placeholder="Age Range (min-max)"
-            value={filters.minAge && filters.maxAge ? `${filters.minAge}-${filters.maxAge}` : ''}
-            onChange={e => {
-              const value = e.target.value.replace(/\s/g, '');
-              const [min, max] = value.split('-');
-              setPage(0);
-              setFilters(prev => ({
-                ...prev,
-                minAge: min || '',
-                maxAge: max || ''
-              }));
-            }}
-          />
+          <div className="filter-dropdown">
+            <button
+              type="button"
+              className="dropdown-toggle"
+              onClick={() => toggleDropdown('ageRange')}
+            >
+              {`Age Range: ${filters.minAge}-${filters.maxAge}`}
+              <span className="dropdown-arrow">▾</span>
+            </button>
+            {openDropdown === 'ageRange' && (
+              <div className="dropdown-menu age-range-dropdown">
+                <div className="age-range-container">
+                  <div className="age-inputs">
+                    <div className="age-input-group">
+                      <label>Min</label>
+                      <input
+                        type="number"
+                        min="18"
+                        max="100"
+                        value={filters.minAge}
+                        onChange={(e) => handleAgeChange('min', e.target.value)}
+                        onBlur={(e) => {
+                          const snapped = snapToAgeGroup(parseInt(e.target.value) || 18, 'min');
+                          handleAgeChange('min', snapped);
+                        }}
+                      />
+                    </div>
+                    <div className="age-input-group">
+                      <label>Max</label>
+                      <input
+                        type="number"
+                        min="18"
+                        max="100"
+                        value={filters.maxAge}
+                        onChange={(e) => handleAgeChange('max', e.target.value)}
+                        onBlur={(e) => {
+                          const snapped = snapToAgeGroup(parseInt(e.target.value) || 100, 'max');
+                          handleAgeChange('max', snapped);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="age-slider-container">
+                    <div className="age-slider-track">
+                      <div
+                        className="age-slider-range"
+                        style={{
+                          left: `${((filters.minAge - 18) / 82) * 100}%`,
+                          width: `${((filters.maxAge - filters.minAge) / 82) * 100}%`
+                        }}
+                      ></div>
+                      <input
+                        type="range"
+                        min="18"
+                        max="100"
+                        value={filters.minAge}
+                        onChange={(e) => handleAgeChange('min', e.target.value)}
+                        onMouseUp={(e) => {
+                          const snapped = snapToAgeGroup(parseInt(e.target.value), 'min');
+                          handleAgeChange('min', snapped);
+                        }}
+                        className="age-slider age-slider-min"
+                      />
+                      <input
+                        type="range"
+                        min="18"
+                        max="100"
+                        value={filters.maxAge}
+                        onChange={(e) => handleAgeChange('max', e.target.value)}
+                        onMouseUp={(e) => {
+                          const snapped = snapToAgeGroup(parseInt(e.target.value), 'max');
+                          handleAgeChange('max', snapped);
+                        }}
+                        className="age-slider age-slider-max"
+                      />
+                    </div>
+                    <div className="age-slider-labels">
+                      <span>18</span>
+                      <span>100+</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Product Category Dropdown */}
@@ -266,7 +371,7 @@ export function SalesPage() {
         <div className="filter-group">
           <input
             type="text"
-            placeholder="Tags (comma separated)"
+            placeholder="Tags"
             value={filters.tags.join(',')}
             onChange={e =>
               handleMultiSelectChange(
@@ -312,12 +417,28 @@ export function SalesPage() {
 
         {/* Date */}
         <div className="filter-group">
-          <input
-            type="date"
-            placeholder="Date"
-            value={filters.date}
-            onChange={e => handleDateChange('date', e.target.value)}
-          />
+          <div className="filter-dropdown">
+            <button
+              type="button"
+              className="dropdown-toggle"
+              onClick={() => toggleDropdown('date')}
+            >
+              {filters.date || 'Date'}
+              <span className="dropdown-arrow">▾</span>
+            </button>
+            {openDropdown === 'date' && (
+              <div className="dropdown-menu date-picker-dropdown">
+                <input
+                  type="date"
+                  value={filters.date}
+                  onChange={e => {
+                    handleDateChange('date', e.target.value);
+                    setOpenDropdown(null);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Sort by */}
