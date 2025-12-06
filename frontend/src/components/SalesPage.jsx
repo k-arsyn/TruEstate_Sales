@@ -14,6 +14,7 @@ export function SalesPage() {
     productCategory: [],
     tags: [],
     paymentMethod: [],
+    date: '',
     startDate: '',
     endDate: ''
   });
@@ -144,6 +145,7 @@ export function SalesPage() {
               productCategory: [],
               tags: [],
               paymentMethod: [],
+              date: '',
               startDate: '',
               endDate: ''
             });
@@ -314,21 +316,14 @@ export function SalesPage() {
           </div>
         </div>
 
-        {/* Date Range */}
+        {/* Date */}
         <div className="filter-group">
-          <div className="filter-label">Date Range</div>
-          <div className="date-range">
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={e => handleDateChange('startDate', e.target.value)}
-            />
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={e => handleDateChange('endDate', e.target.value)}
-            />
-          </div>
+          <div className="filter-label">Date</div>
+          <input
+            type="date"
+            value={filters.date}
+            onChange={e => handleDateChange('date', e.target.value)}
+          />
         </div>
 
         {/* Sort by */}
