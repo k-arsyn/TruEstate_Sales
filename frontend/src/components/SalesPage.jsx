@@ -157,7 +157,6 @@ export function SalesPage() {
 
         {/* Customer Region Dropdown */}
         <div className="filter-group">
-          <div className="filter-label">Customer Region</div>
           <div className="filter-dropdown">
             <button
               type="button"
@@ -166,8 +165,8 @@ export function SalesPage() {
             >
               {filters.customerRegion.length > 0
                 ? filters.customerRegion.join(', ')
-                : 'Select Region'}
-              <span className="dropdown-arrow">▼</span>
+                : 'Customer Region'}
+              <span className="dropdown-arrow">▾</span>
             </button>
             {openDropdown === 'customerRegion' && (
               <div className="dropdown-menu">
@@ -188,15 +187,14 @@ export function SalesPage() {
 
         {/* Gender Dropdown */}
         <div className="filter-group">
-          <div className="filter-label">Gender</div>
           <div className="filter-dropdown">
             <button
               type="button"
               className="dropdown-toggle"
               onClick={() => toggleDropdown('gender')}
             >
-              {filters.gender.length > 0 ? filters.gender.join(', ') : 'Select Gender'}
-              <span className="dropdown-arrow">▼</span>
+              {filters.gender.length > 0 ? filters.gender.join(', ') : 'Gender'}
+              <span className="dropdown-arrow">▾</span>
             </button>
             {openDropdown === 'gender' && (
               <div className="dropdown-menu">
@@ -217,10 +215,9 @@ export function SalesPage() {
 
         {/* Age Range */}
         <div className="filter-group">
-          <div className="filter-label">Age Range</div>
           <input
             type="text"
-            placeholder="min-max"
+            placeholder="Age Range (min-max)"
             value={filters.minAge && filters.maxAge ? `${filters.minAge}-${filters.maxAge}` : ''}
             onChange={e => {
               const value = e.target.value.replace(/\s/g, '');
@@ -237,7 +234,6 @@ export function SalesPage() {
 
         {/* Product Category Dropdown */}
         <div className="filter-group">
-          <div className="filter-label">Product Category</div>
           <div className="filter-dropdown">
             <button
               type="button"
@@ -246,8 +242,8 @@ export function SalesPage() {
             >
               {filters.productCategory.length > 0
                 ? filters.productCategory.join(', ')
-                : 'Select Category'}
-              <span className="dropdown-arrow">▼</span>
+                : 'Product Category'}
+              <span className="dropdown-arrow">▾</span>
             </button>
             {openDropdown === 'productCategory' && (
               <div className="dropdown-menu">
@@ -268,10 +264,9 @@ export function SalesPage() {
 
         {/* Tags */}
         <div className="filter-group">
-          <div className="filter-label">Tags</div>
           <input
             type="text"
-            placeholder="comma separated"
+            placeholder="Tags (comma separated)"
             value={filters.tags.join(',')}
             onChange={e =>
               handleMultiSelectChange(
@@ -287,7 +282,6 @@ export function SalesPage() {
 
         {/* Payment Method Dropdown */}
         <div className="filter-group">
-          <div className="filter-label">Payment Method</div>
           <div className="filter-dropdown">
             <button
               type="button"
@@ -296,8 +290,8 @@ export function SalesPage() {
             >
               {filters.paymentMethod.length > 0
                 ? filters.paymentMethod.join(', ')
-                : 'Select Payment'}
-              <span className="dropdown-arrow">▼</span>
+                : 'Payment Method'}
+              <span className="dropdown-arrow">▾</span>
             </button>
             {openDropdown === 'paymentMethod' && (
               <div className="dropdown-menu">
@@ -318,9 +312,9 @@ export function SalesPage() {
 
         {/* Date */}
         <div className="filter-group">
-          <div className="filter-label">Date</div>
           <input
             type="date"
+            placeholder="Date"
             value={filters.date}
             onChange={e => handleDateChange('date', e.target.value)}
           />
@@ -328,7 +322,6 @@ export function SalesPage() {
 
         {/* Sort by */}
         <div className="filter-group">
-          <div className="filter-label">Sort by</div>
           <select
             value={sortBy + ':' + direction}
             onChange={e => {
@@ -337,9 +330,9 @@ export function SalesPage() {
               setDirection(dir);
             }}
           >
-            <option value="date:desc">Date (Newest)</option>
-            <option value="quantity:desc">Quantity</option>
-            <option value="customerName:asc">Customer Name (A-Z)</option>
+            <option value="date:desc">Sort by: Date (Newest)</option>
+            <option value="quantity:desc">Sort by: Quantity</option>
+            <option value="customerName:asc">Sort by: Customer Name (A-Z)</option>
           </select>
         </div>
       </section>

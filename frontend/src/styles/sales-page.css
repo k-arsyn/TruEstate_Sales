@@ -46,14 +46,12 @@
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
   position: relative;
 }
 
 .filter-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #333;
+  display: none;
 }
 
 .filter-dropdown {
@@ -80,7 +78,7 @@
 }
 
 .dropdown-arrow {
-  font-size: 10px;
+  font-size: 14px;
   margin-left: 8px;
   color: #666;
 }
