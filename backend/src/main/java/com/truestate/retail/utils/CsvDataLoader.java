@@ -2,24 +2,21 @@ package com.truestate.retail.utils;
 
 import com.truestate.retail.models.SaleRecord;
 import com.truestate.retail.models.SaleRecordRepository;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
+import com.truestate.retail.services.CsvFallbackService;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
+import java.util.List;
 
 @Component
 public class CsvDataLoader implements CommandLineRunner {
 
     private final SaleRecordRepository repository;
+    private final CsvFallbackService csvFallbackService;
 
-    public CsvDataLoader(SaleRecordRepository repository) {
+    public CsvDataLoader(SaleRecordRepository repository, CsvFallbackService csvFallbackService) {
         this.repository = repository;
+        this.csvFallbackService = csvFallbackService;
     }
 
     @Override
@@ -34,75 +31,22 @@ public class CsvDataLoader implements CommandLineRunner {
             return;
         }
 
-        var resource = new ClassPathResource("sales_data.csv");
-        System.out.println("Looking for CSV file at: sales_data.csv");
-
-        if (!resource.exists()) {
-            System.err.println("WARNING: sales_data.csv not found in classpath!");
-            return;
-        }
-
-        System.out.println("CSV file found, starting to load data...");
-        int recordCount = 0;
-
-        try (var reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-             var csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
-
-            for (CSVRecord record : csvParser) {
-                SaleRecord sale = new SaleRecord();
-                sale.setTransactionId(record.get("Transaction ID"));
-                sale.setDate(LocalDate.parse(record.get("Date")));
-                sale.setCustomerId(record.get("Customer ID"));
-                sale.setCustomerName(record.get("Customer Name"));
-                sale.setPhoneNumber(record.get("Phone Number"));
-                sale.setGender(record.get("Gender"));
-                sale.setAge(parseInt(record.get("Age")));
-                sale.setCustomerRegion(record.get("Customer Region"));
-                sale.setCustomerType(record.get("Customer Type"));
-                sale.setProductId(record.get("Product ID"));
-                sale.setProductName(record.get("Product Name"));
-                sale.setBrand(record.get("Brand"));
-                sale.setProductCategory(record.get("Product Category"));
-                sale.setTags(record.get("Tags"));
-                sale.setQuantity(parseInt(record.get("Quantity")));
-                sale.setPricePerUnit(parseDouble(record.get("Price per Unit")));
-                sale.setDiscountPercentage(parseDouble(record.get("Discount Percentage")));
-                sale.setTotalAmount(parseDouble(record.get("Total Amount")));
-                sale.setFinalAmount(parseDouble(record.get("Final Amount")));
-                sale.setPaymentMethod(record.get("Payment Method"));
-                sale.setOrderStatus(record.get("Order Status"));
-                sale.setDeliveryType(record.get("Delivery Type"));
-                sale.setStoreId(record.get("Store ID"));
-                sale.setStoreLocation(record.get("Store Location"));
-                sale.setSalespersonId(record.get("Salesperson ID"));
-                sale.setEmployeeName(record.get("Employee Name"));
-                repository.save(sale);
-                recordCount++;
+        // Use CsvFallbackService to load all records from either classpath or CSV_URL
+        try {
+            List<SaleRecord> records = csvFallbackService.loadAllRecords();
+            if (records.isEmpty()) {
+                System.err.println("No records loaded from CSV. Check CSV_URL or classpath CSV.");
+                return;
             }
 
-            System.out.println("Successfully loaded " + recordCount + " records from CSV");
+            repository.saveAll(records);
+            System.out.println("Successfully loaded " + records.size() + " records into the database from CSV");
         } catch (Exception e) {
-            System.err.println("Error loading CSV data: " + e.getMessage());
+            System.err.println("Error loading CSV data at startup: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
 
         System.out.println("=== CSV Data Loader Finished ===");
-    }
-
-    private Integer parseInt(String value) {
-        try {
-            return value == null || value.isBlank() ? null : Integer.parseInt(value.trim());
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-    }
-
-    private Double parseDouble(String value) {
-        try {
-            return value == null || value.isBlank() ? null : Double.parseDouble(value.trim());
-        } catch (NumberFormatException ex) {
-            return null;
-        }
     }
 }

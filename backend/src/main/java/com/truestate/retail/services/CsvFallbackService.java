@@ -24,6 +24,15 @@ public class CsvFallbackService {
     @Value("${csv.url:}")
     private String csvUrl;
 
+    /**
+     * Load all records from CSV, either from the classpath or from the external URL
+     * configured via csv.url / CSV_URL. This is used both by the startup data loader
+     * and by the fallback search implementation when the database is empty.
+     */
+    public List<SaleRecord> loadAllRecords() throws Exception {
+        return loadAllRecordsFromCsv();
+    }
+
     public Page<SaleRecord> searchFromCsv(
             String query,
             List<String> customerRegions,
@@ -222,4 +231,3 @@ public class CsvFallbackService {
         }
     }
 }
-

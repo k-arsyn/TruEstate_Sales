@@ -2,18 +2,13 @@ package com.truestate.retail.controllers;
 
 import com.truestate.retail.models.SaleRecord;
 import com.truestate.retail.models.SaleRecordRepository;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-import org.springframework.core.io.ClassPathResource;
+import com.truestate.retail.services.CsvFallbackService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,9 +16,11 @@ import java.util.Map;
 public class DataLoaderController {
 
     private final SaleRecordRepository repository;
+    private final CsvFallbackService csvFallbackService;
 
-    public DataLoaderController(SaleRecordRepository repository) {
+    public DataLoaderController(SaleRecordRepository repository, CsvFallbackService csvFallbackService) {
         this.repository = repository;
+        this.csvFallbackService = csvFallbackService;
     }
 
     @GetMapping("/load-data")
@@ -36,63 +33,23 @@ public class DataLoaderController {
 
             if (existingCount > 0) {
                 response.put("message", "Database already has " + existingCount + " records");
+                response.put("alreadyLoaded", true);
                 return response;
             }
 
-            var resource = new ClassPathResource("sales_data.csv");
-
-            if (!resource.exists()) {
-                response.put("error", "CSV file not found in classpath");
-                response.put("resourcePath", "sales_data.csv");
-                response.put("exists", false);
-
-                // Try alternative path
-                var altResource = new ClassPathResource("/sales_data.csv");
-                response.put("alternativePathExists", altResource.exists());
-
+            // Use the shared CSV loader (classpath or CSV_URL)
+            List<SaleRecord> records = csvFallbackService.loadAllRecords();
+            if (records.isEmpty()) {
+                response.put("success", false);
+                response.put("error", "CSV file not found or empty. Check CSV_URL or classpath CSV.");
                 return response;
             }
 
-            int recordCount = 0;
-            try (var reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-                 var csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
-
-                for (CSVRecord record : csvParser) {
-                    SaleRecord sale = new SaleRecord();
-                    sale.setTransactionId(record.get("Transaction ID"));
-                    sale.setDate(LocalDate.parse(record.get("Date")));
-                    sale.setCustomerId(record.get("Customer ID"));
-                    sale.setCustomerName(record.get("Customer Name"));
-                    sale.setPhoneNumber(record.get("Phone Number"));
-                    sale.setGender(record.get("Gender"));
-                    sale.setAge(parseInt(record.get("Age")));
-                    sale.setCustomerRegion(record.get("Customer Region"));
-                    sale.setCustomerType(record.get("Customer Type"));
-                    sale.setProductId(record.get("Product ID"));
-                    sale.setProductName(record.get("Product Name"));
-                    sale.setBrand(record.get("Brand"));
-                    sale.setProductCategory(record.get("Product Category"));
-                    sale.setTags(record.get("Tags"));
-                    sale.setQuantity(parseInt(record.get("Quantity")));
-                    sale.setPricePerUnit(parseDouble(record.get("Price per Unit")));
-                    sale.setDiscountPercentage(parseDouble(record.get("Discount Percentage")));
-                    sale.setTotalAmount(parseDouble(record.get("Total Amount")));
-                    sale.setFinalAmount(parseDouble(record.get("Final Amount")));
-                    sale.setPaymentMethod(record.get("Payment Method"));
-                    sale.setOrderStatus(record.get("Order Status"));
-                    sale.setDeliveryType(record.get("Delivery Type"));
-                    sale.setStoreId(record.get("Store ID"));
-                    sale.setStoreLocation(record.get("Store Location"));
-                    sale.setSalespersonId(record.get("Salesperson ID"));
-                    sale.setEmployeeName(record.get("Employee Name"));
-                    repository.save(sale);
-                    recordCount++;
-                }
-            }
+            repository.saveAll(records);
 
             response.put("success", true);
-            response.put("recordsLoaded", recordCount);
-            response.put("message", "Successfully loaded " + recordCount + " records from CSV");
+            response.put("recordsLoaded", records.size());
+            response.put("message", "Successfully loaded " + records.size() + " records from CSV");
 
         } catch (Exception e) {
             response.put("error", e.getMessage());
@@ -100,21 +57,5 @@ public class DataLoaderController {
         }
 
         return response;
-    }
-
-    private Integer parseInt(String value) {
-        try {
-            return value == null || value.isBlank() ? null : Integer.parseInt(value.trim());
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-    }
-
-    private Double parseDouble(String value) {
-        try {
-            return value == null || value.isBlank() ? null : Double.parseDouble(value.trim());
-        } catch (NumberFormatException ex) {
-            return null;
-        }
     }
 }
