@@ -4,11 +4,14 @@ import com.truestate.retail.models.SaleRecord;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedInputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -17,6 +20,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class CsvFallbackService {
+
+    @Value("${csv.url:}")
+    private String csvUrl;
 
     public Page<SaleRecord> searchFromCsv(
             String query,
@@ -65,16 +71,25 @@ public class CsvFallbackService {
 
     private List<SaleRecord> loadAllRecordsFromCsv() throws Exception {
         List<SaleRecord> records = new ArrayList<>();
+
+        // Try classpath first
         var resource = new ClassPathResource("sales_data.csv");
 
-        if (!resource.exists()) {
-            System.err.println("CSV file not found in classpath");
+        InputStreamReader reader = null;
+
+        if (resource.exists()) {
+            System.out.println("Loading CSV from classpath");
+            reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
+        } else if (csvUrl != null && !csvUrl.isBlank()) {
+            System.out.println("CSV not in classpath, downloading from: " + csvUrl);
+            URL url = new URL(csvUrl);
+            reader = new InputStreamReader(new BufferedInputStream(url.openStream()), StandardCharsets.UTF_8);
+        } else {
+            System.err.println("CSV file not found in classpath and no CSV URL provided");
             return records;
         }
 
-        try (var reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-             var csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
-
+        try (var csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
             for (CSVRecord csvRecord : csvParser) {
                 SaleRecord sale = new SaleRecord();
                 sale.setTransactionId(csvRecord.get("Transaction ID"));
@@ -104,6 +119,10 @@ public class CsvFallbackService {
                 sale.setSalespersonId(csvRecord.get("Salesperson ID"));
                 sale.setEmployeeName(csvRecord.get("Employee Name"));
                 records.add(sale);
+            }
+        } finally {
+            if (reader != null) {
+                reader.close();
             }
         }
 
