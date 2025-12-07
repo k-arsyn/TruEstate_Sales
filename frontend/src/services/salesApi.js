@@ -29,6 +29,13 @@ export async function fetchSales(params) {
   queryParams.set('size', params.size ?? 10);
 
   const url = `${API_BASE}?${queryParams.toString()}`;
-  const response = await axios.get(url, { timeout: 10000 });
+
+  // Increased timeout to 120 seconds for cold starts on Render free tier
+  const response = await axios.get(url, {
+    timeout: 120000,
+    headers: {
+      'Accept': 'application/json'
+    }
+  });
   return response.data;
 }
