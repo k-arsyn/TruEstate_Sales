@@ -1,6 +1,5 @@
 target/
-!target/*.jar
-.mvn/wrapper/maven-wrapper.jar
+.mvn/
 *.log
 .env
 .DS_Store
@@ -8,4 +7,3 @@ target/
 .idea/
 .vscode/
 *.iml
-
