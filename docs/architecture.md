@@ -169,37 +169,16 @@ Frontend debounces user input to reduce API calls. Local state for slider provid
 
 **Caching Layer**: No caching mechanism implemented. Adding Redis or Caffeine cache for frequently accessed queries would reduce database load. Cache invalidation strategy needed for data updates.
 
-**Connection Pooling**: Uses default HikariCP settings. Fine-tuning pool size, timeout values, and connection lifecycle parameters would optimize resource usage under high load.
-
-**Query Result Streaming**: Large result sets loaded entirely into memory before pagination. Implementing cursor-based pagination or result streaming would reduce memory footprint for exports or large page sizes.
-
-**Batch Operations**: CSV data loaded record-by-record. Batch insert operations using JDBC batch API would significantly improve initial data load performance.
-
-### Frontend Enhancements Not Completed
-
-**Virtual Scrolling**: Table renders all rows on current page. Large page sizes cause performance degradation. Virtual scrolling would render only visible rows.
-
-**Advanced Filter UI**: Age range slider lacks visual feedback for predefined groups. Date filter limited to single date instead of range picker. Multi-select filters need "Select All" and "Clear" options.
-
-**Error Handling**: Basic error display without retry mechanism. Network failures should trigger automatic retry with exponential backoff. Detailed error messages needed for user guidance.
-
-**State Management**: All state local to SalesPage component. Extracting to context or state management library would enable state sharing across potential future components.
-
-**Accessibility**: Missing ARIA labels, keyboard navigation for dropdowns, and screen reader support. Table navigation requires proper focus management.
 
 ### Features Planned But Not Implemented
 
 **Export Functionality**: No CSV or Excel export despite backend having data source. Requires streaming large datasets to avoid memory issues.
-
-**Column Customization**: Fixed column set without user ability to show, hide, or reorder columns. Preference persistence needed.
 
 **Advanced Search**: Limited to exact substring matching. Fuzzy search, wildcard operators, and field-specific search would improve usability.
 
 **Filter Presets**: Users cannot save frequently used filter combinations. Preset system requires backend storage of user preferences.
 
 **Real-time Updates**: Data static after page load. WebSocket implementation would enable live updates when backend data changes.
-
-**Bulk Actions**: No ability to select multiple records for batch operations like status updates or exports.
 
 ### Testing Gaps
 
@@ -218,13 +197,3 @@ Frontend debounces user input to reduce API calls. Local state for slider provid
 **Rate Limiting**: No request throttling implemented. API vulnerable to abuse without rate limiting per IP or user.
 
 **Authentication**: Endpoints completely open. Production requires authentication mechanism (JWT, OAuth2) and authorization checks.
-
-**SQL Injection**: JPA parameterization prevents most SQL injection, but custom native queries if added later need careful review.
-
-### Configuration Management
-
-**Environment-specific Configuration**: Hardcoded values in application.properties. Externalized configuration using Spring Cloud Config or environment variables needed for different deployment environments.
-
-**Logging**: Basic console logging without structured format. Centralized logging with correlation IDs would improve troubleshooting in distributed environments.
-
-**Monitoring**: No application metrics exposed. Micrometer integration with Prometheus would enable performance monitoring and alerting.
