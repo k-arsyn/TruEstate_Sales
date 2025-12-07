@@ -43,6 +43,13 @@ public class DataLoaderController {
 
             if (!resource.exists()) {
                 response.put("error", "CSV file not found in classpath");
+                response.put("resourcePath", "sales_data.csv");
+                response.put("exists", false);
+
+                // Try alternative path
+                var altResource = new ClassPathResource("/sales_data.csv");
+                response.put("alternativePathExists", altResource.exists());
+
                 return response;
             }
 
@@ -111,4 +118,3 @@ public class DataLoaderController {
         }
     }
 }
-

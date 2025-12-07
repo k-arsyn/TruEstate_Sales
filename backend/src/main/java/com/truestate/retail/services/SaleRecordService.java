@@ -16,9 +16,11 @@ import java.util.List;
 public class SaleRecordService {
 
     private final SaleRecordRepository repository;
+    private final CsvFallbackService csvFallbackService;
 
-    public SaleRecordService(SaleRecordRepository repository) {
+    public SaleRecordService(SaleRecordRepository repository, CsvFallbackService csvFallbackService) {
         this.repository = repository;
+        this.csvFallbackService = csvFallbackService;
     }
 
     public Page<SaleRecord> search(
@@ -37,6 +39,20 @@ public class SaleRecordService {
             int page,
             int size
     ) {
+        // Check if database has data
+        long count = repository.count();
+
+        if (count == 0) {
+            System.out.println("Database is empty, using CSV fallback service");
+            // Use CSV fallback if database is empty
+            return csvFallbackService.searchFromCsv(
+                    query, customerRegions, genders, minAge, maxAge,
+                    productCategories, tags, paymentMethods, startDate, endDate,
+                    sortBy, sortDirection, page, size
+            );
+        }
+
+        // Use database if it has data
         var criteria = new SaleRecordSpecification.SearchCriteria(
                 query,
                 customerRegions,
@@ -73,4 +89,3 @@ public class SaleRecordService {
         return sort.descending();
     }
 }
-
