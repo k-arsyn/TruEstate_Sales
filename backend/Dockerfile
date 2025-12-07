@@ -25,11 +25,14 @@ WORKDIR /app
 # Copy JAR from build stage
 COPY --from=build /app/target/retail-backend-0.0.1-SNAPSHOT.jar app.jar
 
+# Copy the CSV file to the same directory as the JAR
+COPY --from=build /app/src/main/resources/sales_data.csv ./sales_data.csv
+
 # Expose port
 EXPOSE 8080
 
 # Set environment variables
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Run the application with classpath pointing to current directory
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dloader.path=. -jar app.jar"]
