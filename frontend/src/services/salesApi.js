@@ -14,17 +14,21 @@ export async function fetchSales(params) {
     }
   });
 
-  if (params.minAge) queryParams.set('minAge', params.minAge);
-  if (params.maxAge) queryParams.set('maxAge', params.maxAge);
-  if (params.startDate) queryParams.set('startDate', params.startDate);
-  if (params.endDate) queryParams.set('endDate', params.endDate);
+  // Handle date filter - use single date as both startDate and endDate
+  const startDate = params.startDate || params.date;
+  const endDate = params.endDate || params.date;
+
+  if (params.minAge !== undefined && params.minAge !== null) queryParams.set('minAge', params.minAge);
+  if (params.maxAge !== undefined && params.maxAge !== null) queryParams.set('maxAge', params.maxAge);
+  if (startDate) queryParams.set('startDate', startDate);
+  if (endDate) queryParams.set('endDate', endDate);
 
   queryParams.set('sortBy', params.sortBy || 'date');
   queryParams.set('direction', params.direction || 'desc');
   queryParams.set('page', params.page ?? 0);
   queryParams.set('size', params.size ?? 10);
 
-  const response = await axios.get(`${API_BASE}?${queryParams.toString()}`);
+  const url = `${API_BASE}?${queryParams.toString()}`;
+  const response = await axios.get(url, { timeout: 10000 });
   return response.data;
 }
-
