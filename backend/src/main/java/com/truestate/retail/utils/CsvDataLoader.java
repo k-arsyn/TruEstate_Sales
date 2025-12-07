@@ -24,12 +24,26 @@ public class CsvDataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (repository.count() > 0) return;
+        System.out.println("=== CSV Data Loader Starting ===");
+
+        long count = repository.count();
+        System.out.println("Current record count in database: " + count);
+
+        if (count > 0) {
+            System.out.println("Database already has data, skipping CSV load");
+            return;
+        }
 
         var resource = new ClassPathResource("sales_data.csv");
+        System.out.println("Looking for CSV file at: sales_data.csv");
+
         if (!resource.exists()) {
-            return; // allow app to run even without file
+            System.err.println("WARNING: sales_data.csv not found in classpath!");
+            return;
         }
+
+        System.out.println("CSV file found, starting to load data...");
+        int recordCount = 0;
 
         try (var reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
              var csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
@@ -63,8 +77,17 @@ public class CsvDataLoader implements CommandLineRunner {
                 sale.setSalespersonId(record.get("Salesperson ID"));
                 sale.setEmployeeName(record.get("Employee Name"));
                 repository.save(sale);
+                recordCount++;
             }
+
+            System.out.println("Successfully loaded " + recordCount + " records from CSV");
+        } catch (Exception e) {
+            System.err.println("Error loading CSV data: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
+
+        System.out.println("=== CSV Data Loader Finished ===");
     }
 
     private Integer parseInt(String value) {
@@ -83,4 +106,3 @@ public class CsvDataLoader implements CommandLineRunner {
         }
     }
 }
-
