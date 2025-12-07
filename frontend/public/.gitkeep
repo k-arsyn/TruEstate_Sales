@@ -1,0 +1,6 @@
+# Static Assets
+
+This directory contains static assets that don't need processing (images, fonts, etc.).
+
+Files placed here will be copied to the build output as-is.
+

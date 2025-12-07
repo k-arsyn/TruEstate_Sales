@@ -1,0 +1,9 @@
+# Utility Functions
+
+This directory contains reusable utility functions for the application.
+
+Example utilities that could be added:
+- dateFormatters.js
+- validators.js
+- constants.js
+

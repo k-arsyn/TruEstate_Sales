@@ -1,0 +1,9 @@
+# Custom React Hooks
+
+This directory contains reusable custom React hooks for the application.
+
+Example hooks that could be added:
+- useDebounce.js (currently inline in SalesPage.jsx)
+- usePagination.js
+- useFilters.js
+
