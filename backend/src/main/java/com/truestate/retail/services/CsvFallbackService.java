@@ -10,6 +10,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -49,94 +50,118 @@ public class CsvFallbackService {
             int page,
             int size
     ) {
-        try {
-            List<SaleRecord> allRecords = loadAllRecordsFromCsv();
+        int pageStart = page * size;
+        int pageEnd = pageStart + size;
+        int matchIndex = 0;
+        List<SaleRecord> pageContent = new ArrayList<>(size);
 
-            // Apply filters
-            List<SaleRecord> filtered = allRecords.stream()
-                    .filter(record -> matchesFilters(record, query, customerRegions, genders, minAge, maxAge,
-                            productCategories, tags, paymentMethods, startDate, endDate))
-                    .collect(Collectors.toList());
+        try (InputStreamReader reader = openCsvReader();
+             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
 
-            // Apply sorting
-            filtered = applySort(filtered, sortBy, sortDirection);
+            for (CSVRecord csvRecord : csvParser) {
+                SaleRecord sale = mapCsvRecord(csvRecord);
+                if (!matchesFilters(sale, query, customerRegions, genders, minAge, maxAge,
+                        productCategories, tags, paymentMethods, startDate, endDate)) {
+                    continue;
+                }
 
-            // Apply pagination
-            int start = page * size;
-            int end = Math.min(start + size, filtered.size());
+                if (matchIndex >= pageStart && matchIndex < pageEnd) {
+                    pageContent.add(sale);
+                }
 
-            List<SaleRecord> pageContent = (start < filtered.size())
-                    ? filtered.subList(start, end)
-                    : new ArrayList<>();
+                matchIndex++;
+            }
 
-            return new PageImpl<>(pageContent, PageRequest.of(page, size), filtered.size());
-
+        } catch (IOException e) {
+            System.err.println("Error reading CSV stream: " + e.getMessage());
+            e.printStackTrace();
+            return Page.empty();
         } catch (Exception e) {
-            System.err.println("Error loading from CSV: " + e.getMessage());
+            System.err.println("Unexpected error during CSV search: " + e.getMessage());
             e.printStackTrace();
             return Page.empty();
         }
+
+        long totalElements = matchIndex;
+        // Apply sort within the current page to respect UI expectations
+        applyInPageSort(pageContent, sortBy, sortDirection);
+
+        Pageable pageable = PageRequest.of(page, size);
+        return new PageImpl<>(pageContent, pageable, totalElements);
     }
 
-    private List<SaleRecord> loadAllRecordsFromCsv() throws Exception {
-        List<SaleRecord> records = new ArrayList<>();
-
-        // Try classpath first
+    private InputStreamReader openCsvReader() throws Exception {
         var resource = new ClassPathResource("sales_data.csv");
 
-        InputStreamReader reader = null;
-
         if (resource.exists()) {
-            System.out.println("Loading CSV from classpath");
-            reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-        } else if (csvUrl != null && !csvUrl.isBlank()) {
-            System.out.println("CSV not in classpath, downloading from: " + csvUrl);
+            System.out.println("Streaming CSV from classpath");
+            return new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
+        }
+
+        if (csvUrl != null && !csvUrl.isBlank()) {
+            System.out.println("CSV not in classpath, streaming from URL: " + csvUrl);
             URL url = new URL(csvUrl);
-            reader = new InputStreamReader(new BufferedInputStream(url.openStream()), StandardCharsets.UTF_8);
+            return new InputStreamReader(new BufferedInputStream(url.openStream()), StandardCharsets.UTF_8);
+        }
+
+        throw new IllegalStateException("CSV file not found in classpath and no CSV URL provided");
+    }
+
+    private SaleRecord mapCsvRecord(CSVRecord csvRecord) {
+        SaleRecord sale = new SaleRecord();
+        sale.setTransactionId(csvRecord.get("Transaction ID"));
+        sale.setDate(LocalDate.parse(csvRecord.get("Date")));
+        sale.setCustomerId(csvRecord.get("Customer ID"));
+        sale.setCustomerName(csvRecord.get("Customer Name"));
+        sale.setPhoneNumber(csvRecord.get("Phone Number"));
+        sale.setGender(csvRecord.get("Gender"));
+        sale.setAge(parseInt(csvRecord.get("Age")));
+        sale.setCustomerRegion(csvRecord.get("Customer Region"));
+        sale.setCustomerType(csvRecord.get("Customer Type"));
+        sale.setProductId(csvRecord.get("Product ID"));
+        sale.setProductName(csvRecord.get("Product Name"));
+        sale.setBrand(csvRecord.get("Brand"));
+        sale.setProductCategory(csvRecord.get("Product Category"));
+        sale.setTags(csvRecord.get("Tags"));
+        sale.setQuantity(parseInt(csvRecord.get("Quantity")));
+        sale.setPricePerUnit(parseDouble(csvRecord.get("Price per Unit")));
+        sale.setDiscountPercentage(parseDouble(csvRecord.get("Discount Percentage")));
+        sale.setTotalAmount(parseDouble(csvRecord.get("Total Amount")));
+        sale.setFinalAmount(parseDouble(csvRecord.get("Final Amount")));
+        sale.setPaymentMethod(csvRecord.get("Payment Method"));
+        sale.setOrderStatus(csvRecord.get("Order Status"));
+        sale.setDeliveryType(csvRecord.get("Delivery Type"));
+        sale.setStoreId(csvRecord.get("Store ID"));
+        sale.setStoreLocation(csvRecord.get("Store Location"));
+        sale.setSalespersonId(csvRecord.get("Salesperson ID"));
+        sale.setEmployeeName(csvRecord.get("Employee Name"));
+        return sale;
+    }
+
+    private void applyInPageSort(List<SaleRecord> records, String sortBy, String sortDirection) {
+        boolean ascending = "asc".equalsIgnoreCase(sortDirection);
+
+        if ("quantity".equalsIgnoreCase(sortBy)) {
+            records.sort((a, b) -> {
+                Integer qtyA = a.getQuantity() != null ? a.getQuantity() : 0;
+                Integer qtyB = b.getQuantity() != null ? b.getQuantity() : 0;
+                return ascending ? qtyA.compareTo(qtyB) : qtyB.compareTo(qtyA);
+            });
+        } else if ("customerName".equalsIgnoreCase(sortBy)) {
+            records.sort((a, b) -> {
+                String nameA = a.getCustomerName() != null ? a.getCustomerName() : "";
+                String nameB = b.getCustomerName() != null ? b.getCustomerName() : "";
+                return ascending ? nameA.compareTo(nameB) : nameB.compareTo(nameA);
+            });
         } else {
-            System.err.println("CSV file not found in classpath and no CSV URL provided");
-            return records;
+            // Default: sort by date
+            records.sort((a, b) -> {
+                if (a.getDate() == null || b.getDate() == null) {
+                    return 0;
+                }
+                return ascending ? a.getDate().compareTo(b.getDate()) : b.getDate().compareTo(a.getDate());
+            });
         }
-
-        try (var csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
-            for (CSVRecord csvRecord : csvParser) {
-                SaleRecord sale = new SaleRecord();
-                sale.setTransactionId(csvRecord.get("Transaction ID"));
-                sale.setDate(LocalDate.parse(csvRecord.get("Date")));
-                sale.setCustomerId(csvRecord.get("Customer ID"));
-                sale.setCustomerName(csvRecord.get("Customer Name"));
-                sale.setPhoneNumber(csvRecord.get("Phone Number"));
-                sale.setGender(csvRecord.get("Gender"));
-                sale.setAge(parseInt(csvRecord.get("Age")));
-                sale.setCustomerRegion(csvRecord.get("Customer Region"));
-                sale.setCustomerType(csvRecord.get("Customer Type"));
-                sale.setProductId(csvRecord.get("Product ID"));
-                sale.setProductName(csvRecord.get("Product Name"));
-                sale.setBrand(csvRecord.get("Brand"));
-                sale.setProductCategory(csvRecord.get("Product Category"));
-                sale.setTags(csvRecord.get("Tags"));
-                sale.setQuantity(parseInt(csvRecord.get("Quantity")));
-                sale.setPricePerUnit(parseDouble(csvRecord.get("Price per Unit")));
-                sale.setDiscountPercentage(parseDouble(csvRecord.get("Discount Percentage")));
-                sale.setTotalAmount(parseDouble(csvRecord.get("Total Amount")));
-                sale.setFinalAmount(parseDouble(csvRecord.get("Final Amount")));
-                sale.setPaymentMethod(csvRecord.get("Payment Method"));
-                sale.setOrderStatus(csvRecord.get("Order Status"));
-                sale.setDeliveryType(csvRecord.get("Delivery Type"));
-                sale.setStoreId(csvRecord.get("Store ID"));
-                sale.setStoreLocation(csvRecord.get("Store Location"));
-                sale.setSalespersonId(csvRecord.get("Salesperson ID"));
-                sale.setEmployeeName(csvRecord.get("Employee Name"));
-                records.add(sale);
-            }
-        } finally {
-            if (reader != null) {
-                reader.close();
-            }
-        }
-
-        System.out.println("Loaded " + records.size() + " records from CSV");
-        return records;
     }
 
     private boolean matchesFilters(SaleRecord record, String query, List<String> customerRegions,
@@ -192,28 +217,6 @@ public class CsvFallbackService {
         return true;
     }
 
-    private List<SaleRecord> applySort(List<SaleRecord> records, String sortBy, String sortDirection) {
-        boolean ascending = "asc".equalsIgnoreCase(sortDirection);
-
-        if ("quantity".equalsIgnoreCase(sortBy)) {
-            records.sort((a, b) -> {
-                Integer qtyA = a.getQuantity() != null ? a.getQuantity() : 0;
-                Integer qtyB = b.getQuantity() != null ? b.getQuantity() : 0;
-                return ascending ? qtyA.compareTo(qtyB) : qtyB.compareTo(qtyA);
-            });
-        } else if ("customerName".equalsIgnoreCase(sortBy)) {
-            records.sort((a, b) -> {
-                String nameA = a.getCustomerName() != null ? a.getCustomerName() : "";
-                String nameB = b.getCustomerName() != null ? b.getCustomerName() : "";
-                return ascending ? nameA.compareTo(nameB) : nameB.compareTo(nameA);
-            });
-        } else {
-            // Default: sort by date
-            records.sort((a, b) -> ascending ? a.getDate().compareTo(b.getDate()) : b.getDate().compareTo(a.getDate()));
-        }
-
-        return records;
-    }
 
     private Integer parseInt(String value) {
         try {
