@@ -28,10 +28,7 @@ public class DataLoaderController {
         long existingCount = repository.count();
         response.put("existingRecords", existingCount);
 
-        // With the new streaming CSV fallback implementation, we no longer eagerly
-        // preload the entire CSV into H2. Instead, when the database is empty
-        // SaleRecordService delegates to CsvFallbackService.searchFromCsv(...),
-        // which streams the file per request.
+
         response.put("success", true);
         response.put("message", "Database-backed preload is disabled. Data is served via streaming CSV fallback when the database is empty.");
 
